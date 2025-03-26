@@ -2,3 +2,18 @@
 @import "./styles/base/reset";
 @import "./styles/utils/mixins";
 @import "./styles/base/typography";
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

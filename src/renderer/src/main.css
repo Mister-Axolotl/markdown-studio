@@ -42,7 +42,17 @@ svg {
   max-width: 100%;
 }
 
-ul,
-ol {
-  list-style: none;
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }/*# sourceMappingURL=main.css.map */
