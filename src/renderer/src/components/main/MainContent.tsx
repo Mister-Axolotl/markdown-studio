@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNotification } from "../../hooks/useNotification";
 import { marked } from "marked";
 import hljs from "highlight.js";
 import "highlight.js/styles/github.css";
@@ -20,6 +21,7 @@ import {
   FaHeading,
   FaUndo,
   FaRedo,
+  FaGripLinesVertical,
 } from "react-icons/fa";
 
 interface MainContentProps {
@@ -44,6 +46,13 @@ const MainContent: React.FC<MainContentProps> = ({
   redoRef,
 }) => {
   const { theme } = useTheme();
+  const { addNotification } = useNotification();
+
+  useEffect(() => {
+    // This empty dependency effect ensures the component
+    // re-renders when theme context changes
+  }, [theme]);
+
   const [markdown, setMarkdown] = useState(initialMarkdown);
   const [html, setHtml] = useState("");
   const [splitView, setSplitView] = useState(true);
@@ -54,6 +63,11 @@ const MainContent: React.FC<MainContentProps> = ({
   const [history, setHistory] = useState<string[]>([initialMarkdown]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isUndoRedo, setIsUndoRedo] = useState(false);
+
+  const [isDragging, setIsDragging] = useState(false);
+  const [editorWidth, setEditorWidth] = useState(50);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizerRef = useRef<HTMLDivElement>(null);
 
   // Track current image being resized
   const [activeResizeImage, setActiveResizeImage] =
@@ -69,6 +83,62 @@ const MainContent: React.FC<MainContentProps> = ({
 
   // Max history limit
   const MAX_HISTORY = 100;
+
+  // Add this effect for the resizer functionality
+  useEffect(() => {
+    const container = containerRef.current;
+    const resizer = resizerRef.current;
+
+    if (!container || !resizer || !splitView) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      setIsDragging(true);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      const mouseX = e.clientX - containerRect.left;
+
+      // Calculate new editor width as percentage
+      let newWidth = (mouseX / containerWidth) * 100;
+
+      // Limit width to reasonable values
+      newWidth = Math.max(20, Math.min(newWidth, 80));
+
+      setEditorWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    resizer.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      resizer.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, splitView]);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.setProperty(
+        "--editor-width",
+        `${editorWidth}%`,
+      );
+    }
+  }, [editorWidth]);
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -729,9 +799,10 @@ const MainContent: React.FC<MainContentProps> = ({
 
       {/* Editor and Preview container */}
       <div
-        className={`editor-container ${splitView ? "split" : "preview-only"}`}
+        ref={containerRef}
+        className={`editor-container ${splitView ? "split" : "preview-only"} ${isDragging ? "dragging" : ""}`}
       >
-        {/* Editor pane - always render but potentially hide with CSS */}
+        {/* Editor pane */}
         {(splitView || !splitView) && (
           <div className="editor-pane">
             <textarea
@@ -745,7 +816,14 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         )}
 
-        {/* Preview pane - always render but potentially hide with CSS */}
+        {/* Resizer handle */}
+        {splitView && (
+          <div ref={resizerRef} className="pane-resizer">
+            <FaGripLinesVertical />
+          </div>
+        )}
+
+        {/* Preview pane */}
         {(splitView || !splitView) && (
           <div className="preview-pane">
             <div

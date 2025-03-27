@@ -1,7 +1,9 @@
 import React, { useState, useCallback, useRef } from "react";
 import Header from "./components/common/Header";
 import MainContent from "./components/main/MainContent";
+import Parameters from "./components/settings/parameters";
 import { ThemeProvider } from "./hooks/useTheme";
+import { NotificationProvider } from "./hooks/useNotification";
 
 const App: React.FC = () => {
   const [markdown, setMarkdown] = useState(
@@ -10,6 +12,7 @@ const App: React.FC = () => {
   const [fileName] = useState("Untitled.md");
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [showParameters, setShowParameters] = useState(false);
 
   const undoFunctionRef = useRef<(() => void) | null>(null);
   const redoFunctionRef = useRef<(() => void) | null>(null);
@@ -41,7 +44,7 @@ const App: React.FC = () => {
   // Handle settings action
   const handleSettings = useCallback(() => {
     console.log("Opening settings");
-    // Implement settings dialog
+    setShowParameters(true);
   }, []);
 
   // Undo/Redo handlers that use the refs to call MainContent's functions
@@ -68,27 +71,34 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <div className="app-container flex flex-col h-screen">
-        <Header
-          onSave={handleSave}
-          onExport={handleExport}
-          onImport={handleImport}
-          onSettings={handleSettings}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          fileName={fileName}
-          canUndo={canUndo}
-          canRedo={canRedo}
-        />
-        <MainContent
-          initialMarkdown={markdown}
-          onChange={handleMarkdownChange}
-          onSave={handleSave}
-          onUndoStateChange={handleUndoStateChange}
-          undoRef={undoFunctionRef}
-          redoRef={redoFunctionRef}
-        />
-      </div>
+      <NotificationProvider>
+        <div className="app-container flex flex-col h-screen">
+          <Header
+            onSave={handleSave}
+            onExport={handleExport}
+            onImport={handleImport}
+            onSettings={handleSettings}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            fileName={fileName}
+            canUndo={canUndo}
+            canRedo={canRedo}
+          />
+
+          {showParameters ? (
+            <Parameters onBack={() => setShowParameters(false)} />
+          ) : (
+            <MainContent
+              initialMarkdown={markdown}
+              onChange={handleMarkdownChange}
+              onSave={handleSave}
+              onUndoStateChange={handleUndoStateChange}
+              undoRef={undoFunctionRef}
+              redoRef={redoFunctionRef}
+            />
+          )}
+        </div>
+      </NotificationProvider>
     </ThemeProvider>
   );
 };
